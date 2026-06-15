@@ -1,4 +1,10 @@
+# Before (PyMongo - sync)
+from pymongo import MongoClient
+client = MongoClient(MONGO_URL)
+
+# After (Motor - async)
 from motor.motor_asyncio import AsyncIOMotorClient
+client = AsyncIOMotorClient(MONGO_URL)
 from dotenv import load_dotenv
 import os
 
