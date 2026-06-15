@@ -64,10 +64,16 @@ async def signup(req: schemas.SignUpRequest):
     if not otp_record:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
-    # Check not already registered
+    # Check not already registered (mobile)
     existing = await db.users.find_one({"mobile": req.mobile})
     if existing:
         raise HTTPException(status_code=400, detail="Mobile already registered. Please sign in.")
+
+    # Check email too
+    if req.email:
+        existing_email = await db.users.find_one({"email": req.email})
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Email already registered. Please sign in.")
 
     # Create user
     user_doc = {
