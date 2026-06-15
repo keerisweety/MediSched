@@ -2,7 +2,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-import smtplib
+import resend
 import random
 import string
 import os
@@ -12,8 +12,9 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM  = os.getenv("ALGORITHM")
 EXPIRE_MIN = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 10080))
-GMAIL      = os.getenv("GMAIL_ADDRESS")
-GMAIL_PASS = os.getenv("GMAIL_APP_PASSWORD")
+
+resend.api_key = os.getenv("RESEND_API_KEY")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "onboarding@resend.dev")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -36,34 +37,47 @@ def decode_token(token):
         return None
 
 
-def send_otp_email(to_email, otp, name="User"):
-    subject = "MediSched Global - Your OTP"
-    body = (
-        "Hello " + name + ",\n\n"
-        "Your One-Time Password (OTP) for MediSched Global is:\n\n"
-        "        " + otp + "\n\n"
-        "This OTP is valid for 10 minutes.\n"
-        "Do not share it with anyone.\n\n"
-        "-- MediSched Global Team"
-    )
-    message = "Subject: " + subject + "\n\n" + body
+def send_otp_email(to_email: str, otp: str, name: str = "User") -> bool:
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(GMAIL, GMAIL_PASS)
-            server.sendmail(GMAIL, to_email, message)
+        resend.Emails.send({
+            "from": f"MediSched Global <{FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": "MediSched Global - Your OTP",
+            "html": f"""
+            <div style="font-family:Georgia,serif;padding:32px;max-width:480px;margin:0 auto">
+              <h2 style="color:#8B4A33">MediSched Global</h2>
+              <p>Hello {name},</p>
+              <p>Your One-Time Password is:</p>
+              <div style="font-size:32px;font-weight:700;color:#C4704F;letter-spacing:8px;padding:20px;background:#FDF0E8;border-radius:10px;text-align:center">
+                {otp}
+              </div>
+              <p style="color:#8C6B5A;font-size:13px">Valid for 10 minutes. Do not share with anyone.</p>
+              <p style="color:#8C6B5A;font-size:13px">- MediSched Global Team</p>
+            </div>
+            """
+        })
         return True
     except Exception as e:
-        print("[Email Error] " + str(e))
+        print(f"[Email Error] {e}")
         return False
 
 
-def send_notification_email(to_email, subject, body):
-    message = "Subject: " + subject + "\n\n" + body
+def send_notification_email(to_email: str, subject: str, body: str) -> bool:
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(GMAIL, GMAIL_PASS)
-            server.sendmail(GMAIL, to_email, message)
+        resend.Emails.send({
+            "from": f"MediSched Global <{FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": f"""
+            <div style="font-family:Georgia,serif;padding:32px;max-width:480px;margin:0 auto">
+              <h2 style="color:#8B4A33">MediSched Global</h2>
+              <pre style="font-family:Georgia,serif;white-space:pre-wrap">{body}</pre>
+              <p style="color:#8C6B5A;font-size:13px">- MediSched Global Team</p>
+            </div>
+            """
+        })
         return True
     except Exception as e:
-        print("[Email Error] " + str(e))
+        print(f"[Email Error] {e}")
         return False
+
