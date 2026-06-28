@@ -8,7 +8,7 @@ A full-stack healthcare appointment booking platform with separate portals for p
 |---|---|
 | **Backend** | Python 3.11 · FastAPI (async) |
 | **Database** | MongoDB (Motor, Atlas) |
-| **Auth** | OTP via Email · JWT tokens |
+| **Auth** | OTP via Email (Resend) · JWT tokens |
 | **Frontend** | React 19 · Vite 8 · JSX |
 | **Styling** | Inline CSS (warm earthy theme) |
 
@@ -47,8 +47,8 @@ DB_NAME=medisched
 SECRET_KEY=your-secret-key
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
-GMAIL_ADDRESS=your-email@gmail.com
-GMAIL_APP_PASSWORD=your-app-password
+RESEND_API_KEY=re_xxxxxxx
+FROM_EMAIL=onboarding@resend.dev
 ```
 
 Run the server:

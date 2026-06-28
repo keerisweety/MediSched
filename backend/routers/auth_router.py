@@ -12,7 +12,7 @@ async def send_otp(req: schemas.SendOTPRequest):
     1. Generates a 6-digit OTP
     2. Marks all previous unused OTPs for this mobile as used
     3. Saves new OTP to otp_store collection with 10 min expiry
-    4. Sends OTP to email via Gmail (if email provided)
+    4. Sends OTP to email via Resend (if email provided)
     """
     db = get_db()
     otp = auth.generate_otp()
@@ -35,12 +35,12 @@ async def send_otp(req: schemas.SendOTPRequest):
 
     # Send email if provided
     if req.email:
-            auth.send_otp_email(req.email, otp, req.name or "User")
+        if not auth.send_otp_email(req.email, otp, req.name or "User"):
+            raise HTTPException(status_code=500, detail="Failed to send OTP email. Check server configuration.")
     else:
         print(f"[DEV] OTP for {req.mobile} = {otp}")
 
-    # dev_otp shown in response during development — remove in production
-    return {"message": "OTP sent successfully", "dev_otp": otp}
+    return {"message": "OTP sent successfully"}
 
 
 @router.post("/signup", response_model=schemas.TokenResponse)
