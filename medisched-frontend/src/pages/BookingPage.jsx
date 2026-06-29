@@ -40,16 +40,18 @@ function formatTime(t) {
   return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`
 }
 
+function today() {
+  const d = new Date()
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().split('T')[0]
+}
+
 export default function BookingPage({ user, patients, onBooked, showToast }) {
   const [doctors, setDoctors]     = useState([])
   const [selDoc, setSelDoc]       = useState(null)
   const [selPat, setSelPat]       = useState(patients[0]?._id || '')
-  const [date, setDate] = useState(() => {
-    const d = new Date()
-    const offset = d.getTimezoneOffset()
-    const local = new Date(d.getTime() - offset * 60000)
-    return local.toISOString().split('T')[0]
-  })
+  const [date, setDate] = useState(today)
   const [time, setTime]           = useState('09:00')
   const [note, setNote]           = useState('')
   const [loading, setLoading]     = useState(false)
@@ -101,7 +103,7 @@ export default function BookingPage({ user, patients, onBooked, showToast }) {
       })
       showToast(`✅ Booked! Token: ${res.data.token_number}. Check your email.`)
       setSelDoc(null)
-      setDate('')
+      setDate(today())
       setNote('')
       onBooked()
     } catch (e) {
@@ -187,8 +189,7 @@ export default function BookingPage({ user, patients, onBooked, showToast }) {
 
           {/* Date */}
           <label style={{ fontSize: 13, color: C.muted, display: 'block', marginBottom: 4 }}>Date</label>
-          <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)}
-          min={(() => { const d = new Date(); const o = d.getTimezoneOffset(); return new Date(d.getTime() - o*60000).toISOString().split('T')[0] })()} />
+          <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)} min={today()} />
 
           {/* Time */}
           <label style={{ fontSize: 13, color: C.muted, display: 'block', marginBottom: 4 }}>Preferred Time</label>

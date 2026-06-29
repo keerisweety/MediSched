@@ -64,9 +64,16 @@ function initials(name = '') {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
+function today() {
+  const d = new Date()
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60000)
+  return local.toISOString().split('T')[0]
+}
+
 function formatDate(d) {
   if (!d) return ''
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -158,7 +165,7 @@ function HospitalDetail({ h, onBook, onBack }) {
 
 function BookModal({ booking, patients, userId, onClose, onBooked }) {
   const [selPat, setSelPat] = useState(patients[0]?._id || '')
-  const [date, setDate]     = useState('')
+  const [date, setDate]     = useState(today)
   const [time, setTime]     = useState('09:00')
   const [note, setNote]     = useState('')
   const [loading, setLoading] = useState(false)
@@ -221,7 +228,7 @@ function BookModal({ booking, patients, userId, onClose, onBooked }) {
         </select>
 
         <label style={{ fontSize: 13, color: C.muted, display: 'block', marginBottom: 4 }}>Date</label>
-        <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)} />
+        <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)} min={today()} />
 
         <label style={{ fontSize: 13, color: C.muted, display: 'block', marginBottom: 4 }}>Preferred Time</label>
         <select style={inp} value={time} onChange={e => setTime(e.target.value)}>
@@ -313,7 +320,7 @@ function PatientModal({ existing, userId, onClose, onSaved }) {
 
 // ── Add Regular Visit Modal ───────────────────────────────────────────────────
 function RegularVisitModal({ userId, onClose, onSaved }) {
-  const [form, setForm] = useState({ hospital: '', department: '', doctor: '', frequency: 'Every 3 months', next_date: '' })
+  const [form, setForm] = useState({ hospital: '', department: '', doctor: '', frequency: 'Every 3 months', next_date: today() })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -344,7 +351,7 @@ function RegularVisitModal({ userId, onClose, onSaved }) {
           {['Every month','Every 2 months','Every 3 months','Every 6 months','Every year'].map(f => <option key={f} value={f}>{f}</option>)}
         </select>
         <label style={{ fontSize: 13, color: C.muted, display: 'block', marginBottom: 4 }}>Next Visit Date</label>
-        <input type="date" style={inp} value={form.next_date} onChange={e => setForm({ ...form, next_date: e.target.value })} />
+        <input type="date" style={inp} value={form.next_date} onChange={e => setForm({ ...form, next_date: e.target.value })} min={today()} />
         {error && <div style={{ color: C.danger, fontSize: 12, marginBottom: 10 }}>⚠️ {error}</div>}
         <div style={{ display: 'flex', gap: 10 }}>
           <button style={{ ...btn(), flex: 1 }} onClick={save} disabled={loading}>{loading ? 'Saving…' : 'Save'}</button>
