@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from database import get_db
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 
@@ -64,20 +66,38 @@ async def update_status(appointment_id: str, data: dict):
 
 @router.get("/registered-doctors")
 async def get_registered_doctors():
-    """Returns all registered doctors. Used by patient booking form."""
+    """Returns doctors who have completed their profile and are available today."""
     db = get_db()
+    today_str = datetime.now(IST).strftime("%Y-%m-%d")
     doctors = []
     async for u in db.users.find({"role": "doctor"}):
         profile = await db.doctors.find_one({"user_id": str(u["_id"])})
+        if not profile:
+            continue
+        shift_start = profile.get("shift_start", "") or ""
+        shift_end   = profile.get("shift_end", "")   or ""
+        has_shift   = bool(shift_start and shift_end)
+        if not has_shift:
+            continue
+        existing = await db.appointments.count_documents({
+            "doctor_user_id":  str(u["_id"]),
+            "appointment_date": today_str,
+            "status":          {"$in": ["pending", "confirmed", "waiting"]}
+        })
+        sh, sm = map(int, shift_start.split(":"))
+        eh, em = map(int, shift_end.split(":"))
+        total_slots = ((eh * 60 + em) - (sh * 60 + sm)) // 30
+        remaining   = max(0, total_slots - existing)
         doctors.append({
             "user_id":          str(u["_id"]),
             "name":             u.get("name", ""),
-            "department":       profile.get("department", "")       if profile else "",
-            "hospital_name":    profile.get("hospital_name", "")    if profile else "",
-            "qualification":    profile.get("qualification", "")    if profile else "",
-            "experience_years": profile.get("experience_years", 0)  if profile else 0,
-            "shift_start":      profile.get("shift_start", "")      if profile else "",
-            "shift_end":        profile.get("shift_end", "")        if profile else "",
-            "available":        True
+            "department":       profile.get("department", ""),
+            "hospital_name":    profile.get("hospital_name", ""),
+            "qualification":    profile.get("qualification", ""),
+            "experience_years": profile.get("experience_years", 0),
+            "shift_start":      shift_start,
+            "shift_end":        shift_end,
+            "available":        remaining > 0,
+            "remaining_slots":  remaining
         })
     return doctors

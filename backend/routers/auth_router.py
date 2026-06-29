@@ -69,12 +69,6 @@ async def signup(req: schemas.SignUpRequest):
     if existing:
         raise HTTPException(status_code=400, detail="Mobile already registered. Please sign in.")
 
-    # Check email too
-    if req.email:
-        existing_email = await db.users.find_one({"email": req.email})
-        if existing_email:
-            raise HTTPException(status_code=400, detail="Email already registered. Please sign in.")
-
     # Create user
     user_doc = {
         "name":       req.name,

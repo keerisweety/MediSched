@@ -48,16 +48,17 @@ function today() {
 }
 
 export default function BookingPage({ user, patients, onBooked, showToast }) {
-  const [doctors, setDoctors]     = useState([])
-  const [selDoc, setSelDoc]       = useState(null)
-  const [selPat, setSelPat]       = useState(patients[0]?._id || '')
-  const [date, setDate] = useState(today)
-  const [time, setTime]           = useState('09:00')
-  const [note, setNote]           = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [fetching, setFetching]   = useState(true)
-  const [error, setError]         = useState('')
-  const [search, setSearch]       = useState('')
+  const [doctors, setDoctors]       = useState([])
+  const [selDoc, setSelDoc]         = useState(null)
+  const [selPat, setSelPat]         = useState(patients[0]?._id || '')
+  const [date, setDate]             = useState(today)
+  const [time, setTime]             = useState('09:00')
+  const [note, setNote]             = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [fetching, setFetching]     = useState(true)
+  const [error, setError]           = useState('')
+  const [search, setSearch]         = useState('')
+  const [showAll, setShowAll]       = useState(false)
 
   useEffect(() => {
     loadDoctors()
@@ -75,9 +76,11 @@ export default function BookingPage({ user, patients, onBooked, showToast }) {
   }
 
   const filtered = doctors.filter(d =>
-    d.name.toLowerCase().includes(search.toLowerCase()) ||
-    d.department.toLowerCase().includes(search.toLowerCase()) ||
-    d.hospital_name.toLowerCase().includes(search.toLowerCase())
+    (showAll || d.available) && (
+      d.name.toLowerCase().includes(search.toLowerCase()) ||
+      d.department.toLowerCase().includes(search.toLowerCase()) ||
+      d.hospital_name.toLowerCase().includes(search.toLowerCase())
+    )
   )
 
   const book = async () => {
@@ -128,20 +131,32 @@ export default function BookingPage({ user, patients, onBooked, showToast }) {
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, fontSize: 13 }}>
+            <span style={{ color: C.muted }}>Showing {showAll ? 'all' : 'available'} doctors</span>
+            <button style={btn('ghost', 'sm')} onClick={() => setShowAll(v => !v)}>
+              {showAll ? 'Show Available Only' : 'Show All Doctors'}
+            </button>
+          </div>
+
           {fetching && <div style={{ textAlign: 'center', color: C.muted, padding: 24 }}>Loading doctors...</div>}
 
           {!fetching && filtered.length === 0 && (
             <div style={{ textAlign: 'center', color: C.muted, padding: 24 }}>
-              No registered doctors found.<br />
-              <span style={{ fontSize: 12 }}>Doctors need to sign up and complete their profile first.</span>
+              {showAll
+                ? <span>No registered doctors found.<br />Doctors need to sign up and complete their profile first.</span>
+                : <span>No available doctors for today.<br />Try again later or check back after doctors set their shift.</span>}
             </div>
           )}
 
           {filtered.map(d => (
             <div key={d.user_id}
-              onClick={() => setSelDoc(d)}
-              style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '14px 16px', marginBottom: 10, cursor: 'pointer' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = C.accent}
+              onClick={() => d.available && setSelDoc(d)}
+              style={{
+                background: C.card, border: `1px solid ${C.border}`,
+                borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                cursor: d.available ? 'pointer' : 'default', opacity: d.available ? 1 : 0.55
+              }}
+              onMouseEnter={e => { if (d.available) e.currentTarget.style.borderColor = C.accent }}
               onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -153,8 +168,15 @@ export default function BookingPage({ user, patients, onBooked, showToast }) {
                       🕒 {formatTime(d.shift_start)} – {formatTime(d.shift_end)}
                     </div>
                   )}
+                  <div style={{ fontSize: 12, marginTop: 4 }}>
+                    {d.available
+                      ? <span style={{ color: C.success }}>● Available · {d.remaining_slots} slot{d.remaining_slots !== 1 ? 's' : ''} left</span>
+                      : <span style={{ color: C.danger }}>● Fully booked today</span>}
+                  </div>
                 </div>
-                <button style={btn('primary', 'sm')}>Select</button>
+                {d.available
+                  ? <button style={btn('primary', 'sm')}>Select</button>
+                  : <button style={{ ...btn('ghost', 'sm'), opacity: 0.5 }} disabled>Booked</button>}
               </div>
             </div>
           ))}
